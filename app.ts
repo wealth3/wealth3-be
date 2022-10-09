@@ -5,10 +5,13 @@ const app = express();
 const port = 3001;
 
 app.listen(port, () => {
-  console.log(`Wealth3 BE running at http://localhost:${port}.`);
+  console.log(`Wealth3-BE @ http://localhost:${port}.`);
 });
 
-app.get('/create_validator', async (req, res) => {
+// TODO:
+// Define as POST
+// Custom parameters?
+app.get('/register_validator', async (req, res) => {
   await depositValidator();
   res.status(200).send('Everything is fine!');
 });
