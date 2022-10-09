@@ -46,46 +46,39 @@ async function abi_test() {
   });
 */
 
-
   let SSVNetworkAddress = '0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04';
   let SSVNetworkABIPath = './contracts/ssv-network-abi.json';
+
+  let SSVNetworkABI = JSON.parse(await fsp.readFile(SSVNetworkABIPath, 'utf8'));
+  let SSVNetworkContract = new web3.eth.Contract(SSVNetworkABI, SSVNetworkAddress);
 
   let ssvKeys = new SSVKeys();
   let keyStorePrivKey = await ssvKeys.getPrivateKeyFromKeystoreData(keystore, keystorePassword);
   let shares = await ssvKeys.buildShares(keyStorePrivKey, operatorIds, operators);
 
+  let operatorIdsParsed = operatorIds.map((op: any) => op.toString());
   let sharePublicKeys = shares.map((share) => share.publicKey);
   let shareEncrypted = shares.map((share) => web3.eth.abi.encodeParameter('string', share.privateKey));
+  let SSVAmount = web3.utils.toWei("30", "ether");
 
-  let SSVNetworkABI = JSON.parse(await fsp.readFile(SSVNetworkABIPath, 'utf8'));
-  let SSVNetworkContract = new web3.eth.Contract(SSVNetworkABI, SSVNetworkAddress);
-
-console.log(web3.eth.abi.encodeParameters(['uint32[]'], [operatorIds]), 
-operatorIds);
-
-  let registerGas = await SSVNetworkContract.methods.registerValidator(
-    ssvKeys.getValidatorPublicKey(),
-    operatorIds.map((op: any) => op.toString()),
-    sharePublicKeys,
-    shareEncrypted,
-    '24890317213500000000'
-  ).estimateGas({
+  let registerGas = await SSVNetworkContract.methods.registerValidator( ssvKeys.getValidatorPublicKey(), operatorIdsParsed, sharePublicKeys, shareEncrypted, SSVAmount).estimateGas({
     from: publicKey
   });
 
-
-
-  console.log(
+  SSVNetworkContract.methods.registerValidator(
     ssvKeys.getValidatorPublicKey(),
-    operatorIds.map(op => op.toString()),
+    operatorIdsParsed,
     sharePublicKeys,
     shareEncrypted,
-    '24890317213500000000'
-  );
-
-    // console.log('gas', registerGas);
-
-
+    SSVAmount
+  ).send({ from: publicKey, gas: registerGas * 2 })
+  .on('transactionHash', function(hash: String) {
+    console.log('register hash', hash);
+  }).on('confirmation', function(confirmationNumber: Number, receipt: Object) {
+      
+  }).on('receipt', function(receipt: Object) {
+    console.log('Registered validator receipt');
+  });
 }
 
 void abi_test();  
